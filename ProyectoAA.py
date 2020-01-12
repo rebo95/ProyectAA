@@ -38,13 +38,27 @@ def data_visualization(X, Y):
     plt.show()
 
 
+
+def vectors_coincidence_percentage(a, b):
+    #Calcula el porcentaje de coincidencia dados dos vectores a, b
+    coincidences_array = a == b
+
+    coincidences = sum(map(lambda coincidences_array : coincidences_array == True, coincidences_array  ))
+    percentage =100 * coincidences/coincidences_array.shape
+
+    return percentage
+
+
 #_______________________________________________________________________________________
 #Regresión lineal
 #_______________________________________________________________________________________
 
-def normaliza(X):
+#______________________
+#Funcion de normalizado
+#______________________
+def normalize(X):
 
-    X_normalizada = np.zeros((X.shape[0], X.shape[1]))
+    X_normalized = np.zeros((X.shape[0], X.shape[1]))
 
     mu = np.zeros(X.shape[1])
     sigma = np.zeros(X.shape[1])
@@ -54,19 +68,30 @@ def normaliza(X):
 
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
-            X_normalizada[i,j] = (X[i,j] - mu[j])/sigma[j] 
+            X_normalized[i,j] = (X[i,j] - mu[j])/sigma[j] 
     
-    return X_normalizada, mu, sigma
+    return X_normalized, mu, sigma
 
+
+#__________________
+#Funcion hipótesis
+#__________________
 def H_Theta(X, Z): #Hipótesis del mocelo lineal vectorizada 
     return np.dot(X, Z)
 
-def funcion_coste(X, Y, Theta): #funcion de costes vectorizada
+#__________________________________
+#Funcion de costes regresión lineal
+#__________________________________
+def cost_function_linear_regression(X, Y, Theta): #funcion de costes vectorizada
     H = H_Theta(X,Theta)
     Aux = (H-Y)**2
     sumatory = Aux.sum()/(2 * len(X))
     return sumatory
 
+
+#_____________________________________________
+#Funcion normal, ajuste de la regresión lineal
+#_____________________________________________
 
 def normalEcuation(X,Y): #nos da los valores de theta que mejor se ajustan a nuestra regresión lineal
 
@@ -84,7 +109,10 @@ def normalEcuation(X,Y): #nos da los valores de theta que mejor se ajustan a nue
 
     return thetas
 
-def descenso_gradiente(X, Y, alpha):
+#_____________________________
+#Funcion descenso de gradiente
+#_____________________________
+def gradient_descent(X, Y, alpha):
     
     m = X.shape[0]
 
@@ -100,7 +128,7 @@ def descenso_gradiente(X, Y, alpha):
     alpha_m = (alpha/m)
 
     Thetas = np.array([Z]) #almacena los thetas que forman parte de la hipotesis h_theta
-    Costes = np.array([]) #almacena los costes obtenidos durante el descenso de gradiente
+    costs = np.array([]) #almacena los costes obtenidos durante el descenso de gradiente
  
     for i in range(1500):
 
@@ -113,7 +141,7 @@ def descenso_gradiente(X, Y, alpha):
         #Calculo Theta 1, 2, 3 ... n
         #Sumatorio para el calculo de Thetan
         for k in range(X.shape[1] - 1):
-            sum2 =  (H_Theta(X, Z) - Y) * X[:, k + 1] # sería interesante ver cual es el resultado de probar con el uso de dot en vez del producto valor a valor
+            sum2 =  (H_Theta(X, Z) - Y) * X[:, k + 1]
             sum2_ = sum2.sum()
             th_n -= alpha_m * sum2_ #vamos calculando cada uno de los thn
             Z_[k] = th_n #almacenamos los thn calculados en un vector provisional
@@ -128,20 +156,22 @@ def descenso_gradiente(X, Y, alpha):
         Thetas = np.append(Thetas, [Z], axis= 0)
 
         #funcion de costes
-        J = funcion_coste(X,Y, Z)
+        J = cost_function_linear_regression(X,Y, Z)
 
-        Costes = np.append(Costes, [J], axis = 0)
+        costs = np.append(costs, [J], axis = 0)
 
-    return Thetas, Costes
+    return Thetas, costs
 
-
-def resuelve_problema_regresion_varias_variables():
+#_______________________________________
+#Main Regresion Lineal, varias variables
+#________________________________________
+def regresion_lineal_multiples_variables():
     
     cancer_data = data_csv("data.csv")
     X, Y = data_builder(cancer_data)
     
     
-    X_normalizada, mu, sigma = normaliza(X)
+    X_normalizada, mu, sigma = normalize(X)
 
 
     X = np.hstack([np.ones([np.shape(X)[0], 1]), X])
@@ -150,24 +180,23 @@ def resuelve_problema_regresion_varias_variables():
 
     X_normalizada = np.hstack([np.ones([X_shape_1, 1]), X_normalizada]) #le añadimos la columna de unos a la matriz ya normalizada
 
-    Thetas, Costes = descenso_gradiente(X_normalizada, Y, 0.0022) #los valores de theta aquí son los obtenidos normalizando la matriz, esto es, necesitamos "desnormalizarlos"
+    Thetas, costs = gradient_descent(X_normalizada, Y, 0.0022) #los valores de theta aquí son los obtenidos normalizando la matriz, esto es, necesitamos "desnormalizarlos"
     Thetas_normal_Ecuation = normalEcuation(X, Y)
 
-    shape_thetas = np.shape(Thetas)[0]-1
-    first_cancer_values = X[5, :]
 
-    first_cancer_not_normalizes_values = convert_to_list(first_cancer_values)
-    prediccion_normal_ecuation = H_Theta(first_cancer_not_normalizes_values ,Thetas_normal_Ecuation)
+    normal_prediction, gradient_descent_prediction = prediction_vectors(X, Thetas_normal_Ecuation, Thetas, mu, sigma)
+
+    normal_prediction = vector_prediction_moddel(normal_prediction)
+    gradient_descent_prediction = vector_prediction_moddel(gradient_descent_prediction)
+
+    print(vectors_coincidence_percentage(normal_prediction, gradient_descent_prediction))#100 porciento de coincidencia con gradiente descendiente en comparación con distribución normal
+
+    print(vectors_coincidence_percentage(gradient_descent_prediction, Y)) #86.99 porciento de acierto el la predicción con gradiente descendiente
 
 
-    first_cancer_normalizes_values = normalized_test_value(mu, sigma, first_cancer_not_normalizes_values)
-    prediccion_gradiente_descendiente = H_Theta(first_cancer_normalizes_values, Thetas[shape_thetas])
-
-    pn, pg = prediction_vectors(X, Thetas_normal_Ecuation, Thetas, mu, sigma)
-    print(pn)
-    print(pg)
-   # prediccion_normal_ecuation = H_Theta( second_cancer_not_normalized_values ,Thetas_normal_Ecuation)
-
+#___________________________________________________________________
+#Cálculo vectores prediccion ecuación normal y descenso de gradiente
+#___________________________________________________________________
 def prediction_vectors(X, Thetas_normal_Ecuation, Thetas, mu, sigma):
 
     shape_thetas = np.shape(Thetas)[0]-1
@@ -190,6 +219,17 @@ def prediction_vectors(X, Thetas_normal_Ecuation, Thetas, mu, sigma):
         gradient_descendant_predictions[i] = prediccion_gradiente_descendiente
 
     return normal_predictions, gradient_descendant_predictions
+
+#______________________________________________________________________________________
+#Modelizado vectores predicción, a 0 todo lo que baja de 0.5 y a 1 todo lo que es mayor
+#______________________________________________________________________________________
+def vector_prediction_moddel(vector):
+
+    moddel_vector = np.zeros(vector.shape[0])
+    moddel_vector = (vector >= 0.5).astype(np.int)
+    
+    return moddel_vector
+
 
 
     
@@ -438,4 +478,4 @@ def main():
 
     data_visualization(X, y)
 
-resuelve_problema_regresion_varias_variables()
+regresion_lineal_multiples_variables()
