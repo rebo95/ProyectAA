@@ -151,8 +151,74 @@ def resuelve_problema_regresion_varias_variables():
     X_normalizada = np.hstack([np.ones([X_shape_1, 1]), X_normalizada]) #le añadimos la columna de unos a la matriz ya normalizada
 
     Thetas, Costes = descenso_gradiente(X_normalizada, Y, 0.0022) #los valores de theta aquí son los obtenidos normalizando la matriz, esto es, necesitamos "desnormalizarlos"
+    Thetas_normal_Ecuation = normalEcuation(X, Y)
+
+    shape_thetas = np.shape(Thetas)[0]-1
+    first_cancer_values = X[5, :]
+
+    first_cancer_not_normalizes_values = convert_to_list(first_cancer_values)
+    prediccion_normal_ecuation = H_Theta(first_cancer_not_normalizes_values ,Thetas_normal_Ecuation)
+
+
+    first_cancer_normalizes_values = normalized_test_value(mu, sigma, first_cancer_not_normalizes_values)
+    prediccion_gradiente_descendiente = H_Theta(first_cancer_normalizes_values, Thetas[shape_thetas])
+
+    pn, pg = prediction_vectors(X, Thetas_normal_Ecuation, Thetas, mu, sigma)
+    print(pn)
+    print(pg)
+   # prediccion_normal_ecuation = H_Theta( second_cancer_not_normalized_values ,Thetas_normal_Ecuation)
+
+def prediction_vectors(X, Thetas_normal_Ecuation, Thetas, mu, sigma):
+
+    shape_thetas = np.shape(Thetas)[0]-1
+    cancer_samples = X.shape[0]
+
+    normal_predictions = np.zeros(cancer_samples)
+    gradient_descendant_predictions = normal_predictions
+
+    for i in range(cancer_samples):
+
+        cancer_values = X[i, :]
+        cancer_Not_normalize_values = convert_to_list(cancer_values)
+        prediccion_normal_ecuation = H_Theta(cancer_Not_normalize_values ,Thetas_normal_Ecuation)
+
+        normal_predictions[i] = prediccion_normal_ecuation
+
+        cancer_normalize_values = normalized_test_value(mu, sigma, cancer_Not_normalize_values)
+        prediccion_gradiente_descendiente = H_Theta(cancer_normalize_values, Thetas[shape_thetas])
+
+        gradient_descendant_predictions[i] = prediccion_gradiente_descendiente
+
+    return normal_predictions, gradient_descendant_predictions
+
 
     
+    
+def normalized_test_value(mu, sigma, row_list) :
+
+    dim = mu.shape[0]
+    normalized_values = []
+    normalized_values.append(1)
+
+    for i in range(1, dim +1):
+        normalized_values.append((row_list[0][i] - mu[i-1])/sigma[i-1])
+
+    normalized_values = [normalized_values]
+    return normalized_values
+
+
+def convert_to_list(row):
+
+    values_list = []
+    for i in range(row.shape[0]):
+        values_list.append(row[i])
+
+    values_list = [values_list]
+
+    return values_list
+
+
+
 
 #_______________________________________________________________________________________
 #Regresión logística
