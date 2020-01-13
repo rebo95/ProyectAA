@@ -695,7 +695,7 @@ def neuronal_red_main():
     tasa_aprendizaje = 1
     num_etiquetas = 2 #num_etiquetas = num_salidas. Maligno y Benigno
     num_entradas = 30
-    num_ocultas = 25
+    num_ocultas = 8
 
     theta1 = generate_Random_Weights(num_entradas, num_ocultas)
     theta2 = generate_Random_Weights(num_ocultas, num_etiquetas)
