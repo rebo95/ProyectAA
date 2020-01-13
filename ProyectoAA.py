@@ -460,7 +460,30 @@ def regularized_logistic_regresion(h = 1):
 #Redes Neuronales
 #=======================================================================================
 
-def generate_Random_Weights(L_in, L_out): #Genera un array de pesos para una capa de una red neuronal con entrada L_in y salida L_out
+
+#_________________________________
+#Función auxiliar Despliega vector
+#_________________________________
+#Nos permite desplegar en un vector otros dos
+def unrollVect(a, b): 
+    thetaVec_ = np.concatenate((np.ravel(a), np.ravel(b)))
+    return thetaVec_
+
+#_________________________________
+#Función auxiliar Despliega vector
+#_________________________________
+#Nos permite plegar en un vector otros dos
+def rollVector(params, num_entradas, num_ocultas, num_etiquetas):
+    vector1 = np.matrix(np.reshape(params[:num_ocultas * (num_entradas + 1)], (num_ocultas, (num_entradas + 1))))
+    vector2 = np.matrix(np.reshape(params[num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1))))
+
+    return vector1, vector2
+
+#_________________________
+#Función pesos aleatorios
+#_________________________
+#Nos permite inicializar dos vectores de pesos aleatorios para cada una de las capas de la red neuronal con entrada L_in y salida L_out
+def generate_Random_Weights(L_in, L_out):
 
     e_ini = math.sqrt(6)/math.sqrt(L_in + L_out)
 
@@ -477,27 +500,9 @@ def generate_Random_Weights(L_in, L_out): #Genera un array de pesos para una cap
     return weights
 
 
-def unrollVect(a, b): #nos permite desplegar en un vector otros dos
-    thetaVec_ = np.concatenate((np.ravel(a), np.ravel(b)))
-    return thetaVec_
-
-def rollVector(params, num_entradas, num_ocultas, num_etiquetas):
-    #pliega el vector params en dos vectores de parámetros correspondinetes a los vectores de pesos de cada una de las capas de nuestra red
-    vector1 = np.matrix(np.reshape(params[:num_ocultas * (num_entradas + 1)], (num_ocultas, (num_entradas + 1))))
-    vector2 = np.matrix(np.reshape(params[num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1))))
-
-    return vector1, vector2
-
-def y_onehot(y, X, num_etiquetas):
-    #Devuelve la salida en forma de matriz lista para ser utilizada por nuestros métodos de la red neuronal
-    m = X.shape[0]
-
-    y_onehot = np.zeros((m, num_etiquetas)) 
-
-    for i in range(m):
-        y_onehot[i][int(y[i])] = 1
-    
-    return y_onehot
+#_______________________________________
+#Funciones sigmoide para la red neuronal
+#_______________________________________
 
 def sigmoid(x):
     return 1/(1 + np.exp((-x)))
@@ -509,16 +514,43 @@ def sigmoid_Gradient(z):
     sig_z = sigmoid(z)
     return np.multiply(sig_z, (1 - sig_z))
 
+
+#______________________________________________________
+#Funciones procesado Y, preparación para la red neuroal
+#______________________________________________________
+#Devuelve la salida en forma de matriz lista para ser utilizada por nuestros métodos de la red neuronal
+def y_onehot(y, X, num_etiquetas):
+
+    m = X.shape[0]
+
+    y_onehot = np.zeros((m, num_etiquetas)) 
+
+    for i in range(m):
+        y_onehot[i][int(y[i])] = 1
+    
+    return y_onehot
+
+#_______________________________
+#Función optimización de pesos
+#_______________________________
+#Calcula los parámetros optimos de pesos para nuestra red neuronal
 def minimice(backprop, params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
-    #Calcula los parámetros optimos de pesos para nuestra red neuronal
+
     fmin = opt.minimize(fun=backprop, x0=params, args=(num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje), 
     method='TNC', jac=True, options={'maxiter': 70})
 
     result = fmin.x
     return result
 
-def forward(X, theta1, theta2):#Método pasada hacia adelante para la implementación de la red neuronal
-    #Nos devuelve los parámetros de activación de la red neuronal y el valor h
+
+#_______________________________
+#Función pasada hacia adelante
+#_______________________________
+#Método pasada hacia adelante para la implementación de la red neuronal
+#Nos devuelve los parámetros de activación de la red neuronal y el valor h
+
+def forward(X, theta1, theta2):
+    
     m = X.shape[0]
 
     a1 = np.insert(X, 0, values=np.ones(m), axis=1)
@@ -529,8 +561,13 @@ def forward(X, theta1, theta2):#Método pasada hacia adelante para la implementa
 
     return a1, z2, a2, z3, h
 
-def cost_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
+
+#___________________________
+#Función Coste Red Neuronal
+#___________________________
 #Funcion que calcula el coste base(sin regularizar)
+def cost_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
+
     m = X.shape[0]
     X = np.matrix(X)
     y = np.matrix(y) 
@@ -544,9 +581,13 @@ def cost_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprend
 
     return J, theta1, theta2
 
+#_______________________________________
+#Función Coste Regularizado Red Neuronal
+#_______________________________________
+#Cálculo del coste con el ajuste de regularización
 
 def cost_Regularized_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
-#Cálculo del coste con el ajuste de regularización
+
     m = X.shape[0]
 
     J_, theta1, theta2 = cost_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje)
@@ -557,8 +598,13 @@ def cost_Regularized_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y,
     return J_regularized
 
 
+
+#_____________________________
+#Función Cálculo de gradientes 
+#_____________________________
+#Calculo de los deltas del gradiente (no regularizado)
 def backProp_Deltas(a1, z2, a2, z3, h, theta1, theta2, y, m):
-#Calculo de los gradientes
+
     delta1 = np.zeros(theta1.shape)
     delta2 = np.zeros(theta2.shape)
     
@@ -577,8 +623,11 @@ def backProp_Deltas(a1, z2, a2, z3, h, theta1, theta2, y, m):
     return delta1, delta2
 
 
+#___________________________________________
+#Función Cálculo de gradientes regularizados
+#___________________________________________
 def backProp_Deltas_regularized(a1, z2, a2, z3, h, theta1, theta2, y, m, tasa_aprendizaje):
-#Calculo de los gradientes en formato regularizado 
+
     delta1, delta2 = backProp_Deltas(a1, z2, a2, z3, h, theta1, theta2, y, m)
 
     delta1[:, 1:] = delta1[:, 1:] + (theta1[:, 1:] * tasa_aprendizaje) / m
@@ -586,9 +635,12 @@ def backProp_Deltas_regularized(a1, z2, a2, z3, h, theta1, theta2, y, m, tasa_ap
 
     return delta1, delta2
 
-
-def backprop(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje, regularize = True):
+#________________________
+#Función paso hacia atrás
+#________________________
 #Pasada hacia adelante y hacia atrás en nuestra red neuronal, nos calcula el gradiente y el coste correspondientes a nuestra red neuronal
+def backprop(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje, regularize = True):
+
     m = X.shape[0]
     X = np.matrix(X)
     y = np.matrix(y)
@@ -632,16 +684,16 @@ def neuronal_succes_percentage(X, y, weights1, weights2) :
     return percentage
 
 
-#____________
-#Red neuronal
-#____________
-def neuronal_red():
+#___________________________________________
+#Main Red Neurnal, ajuste a 25 capas ocultas
+#___________________________________________
+def neuronal_red_main():
     
     cancer_data = data_csv("data.csv")
     X, y = data_builder(cancer_data)
     
     tasa_aprendizaje = 1
-    num_etiquetas = 2 #num_etiquetas = num_salidas
+    num_etiquetas = 2 #num_etiquetas = num_salidas. Maligno y Benigno
     num_entradas = 30
     num_ocultas = 25
 
@@ -683,4 +735,4 @@ def main():
 
     data_visualization(X, y)
 
-neuronal_red()
+neuronal_red_main()
