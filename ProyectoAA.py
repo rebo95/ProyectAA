@@ -6,8 +6,10 @@ from pandas.io.parsers import read_csv
 from sklearn.preprocessing import PolynomialFeatures
 
 import scipy.optimize as opt
+import random
 
 #_______________________________________________________________________________________
+
 def data_csv(file_name):
     "Takes the data from the csv file and tranfers it to a numpy array"
 
@@ -50,7 +52,7 @@ def vectors_coincidence_percentage(a, b):
 
 
 #_______________________________________________________________________________________
-#Regresión lineal
+#Regresión lineal, gradiente descendiente.
 #_______________________________________________________________________________________
 
 #______________________
@@ -231,9 +233,7 @@ def vector_prediction_moddel(vector):
     return moddel_vector
 
 
-
-    
-    
+#metodo auxiliar: convierte cada una de las filas o en nuestro caso caso de análisis en una lista para poder tratarlo posteriormente
 def normalized_test_value(mu, sigma, row_list) :
 
     dim = mu.shape[0]
@@ -247,6 +247,7 @@ def normalized_test_value(mu, sigma, row_list) :
     return normalized_values
 
 
+#metodo auxiliar: convierte un vector a una lista
 def convert_to_list(row):
 
     values_list = []
@@ -258,11 +259,13 @@ def convert_to_list(row):
     return values_list
 
 
+#FIN DESCENSO DE GRADIENTE
+#----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-#_______________________________________________________________________________________
+#=======================================================================================
 #Regresión logística
-#_______________________________________________________________________________________
+#=======================================================================================
 #____________________
 #Función sigmoide
 #____________________
@@ -449,10 +452,212 @@ def regularized_logistic_regresion(h = 1):
 
 
 
-#_______________________________________________________________________________________
-#Regresión logística
-#_______________________________________________________________________________________
 
+#FIN Regresión logística
+#----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#=======================================================================================
+#Redes Neuronales
+#=======================================================================================
+
+def generate_Random_Weights(L_in, L_out): #Genera un array de pesos para una capa de una red neuronal con entrada L_in y salida L_out
+
+    e_ini = math.sqrt(6)/math.sqrt(L_in + L_out)
+
+    e_ini= 0.12
+
+    weights = np.zeros((L_out, 1 + L_in))
+
+    for i in range(L_out):
+        for j in range(1 + L_in):
+
+            rnd = random.uniform(-e_ini, e_ini)
+            weights[i,j] = rnd
+
+    return weights
+
+
+def unrollVect(a, b): #nos permite desplegar en un vector otros dos
+    thetaVec_ = np.concatenate((np.ravel(a), np.ravel(b)))
+    return thetaVec_
+
+def rollVector(params, num_entradas, num_ocultas, num_etiquetas):
+    #pliega el vector params en dos vectores de parámetros correspondinetes a los vectores de pesos de cada una de las capas de nuestra red
+    vector1 = np.matrix(np.reshape(params[:num_ocultas * (num_entradas + 1)], (num_ocultas, (num_entradas + 1))))
+    vector2 = np.matrix(np.reshape(params[num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1))))
+
+    return vector1, vector2
+
+def y_onehot(y, X, num_etiquetas):
+    #Devuelve la salida en forma de matriz lista para ser utilizada por nuestros métodos de la red neuronal
+    m = X.shape[0]
+
+    y_onehot = np.zeros((m, num_etiquetas)) 
+
+    for i in range(m):
+        y_onehot[i][int(y[i])] = 1
+    
+    return y_onehot
+
+def sigmoid(x):
+    return 1/(1 + np.exp((-x)))
+
+def sigmoid_Derived(x):
+    return x * (1 - x)
+
+def sigmoid_Gradient(z):
+    sig_z = sigmoid(z)
+    return np.multiply(sig_z, (1 - sig_z))
+
+def minimice(backprop, params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
+    #Calcula los parámetros optimos de pesos para nuestra red neuronal
+    fmin = opt.minimize(fun=backprop, x0=params, args=(num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje), 
+    method='TNC', jac=True, options={'maxiter': 70})
+
+    result = fmin.x
+    return result
+
+def forward(X, theta1, theta2):#Método pasada hacia adelante para la implementación de la red neuronal
+    #Nos devuelve los parámetros de activación de la red neuronal y el valor h
+    m = X.shape[0]
+
+    a1 = np.insert(X, 0, values=np.ones(m), axis=1)
+    z2 = np.dot(a1, theta1.T)
+    a2 = np.hstack([np.ones([m, 1]), sigmoid(z2)])
+    z3 = np.dot(a2, theta2.T)
+    h = sigmoid(z3)
+
+    return a1, z2, a2, z3, h
+
+def cost_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
+#Funcion que calcula el coste base(sin regularizar)
+    m = X.shape[0]
+    X = np.matrix(X)
+    y = np.matrix(y) 
+
+    theta1 = np.matrix(np.reshape(params[:num_ocultas * (num_entradas + 1)], (num_ocultas, (num_entradas + 1))))
+    theta2 = np.matrix(np.reshape(params[num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1))))
+
+    h = forward(X, theta1, theta2)[4]
+
+    J = (np.multiply(-y, np.log(h)) - np.multiply((1 - y), np.log(1 - h))).sum() / m
+
+    return J, theta1, theta2
+
+
+def cost_Regularized_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
+#Cálculo del coste con el ajuste de regularización
+    m = X.shape[0]
+
+    J_, theta1, theta2 = cost_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje)
+    
+    J_regularized =  J_ + (float(tasa_aprendizaje) /
+            (2 * m)) * (np.sum(np.power(theta1[:, 1:], 2)) + np.sum(np.power(theta2[:, 1:], 2)))
+    
+    return J_regularized
+
+
+def backProp_Deltas(a1, z2, a2, z3, h, theta1, theta2, y, m):
+#Calculo de los gradientes
+    delta1 = np.zeros(theta1.shape)
+    delta2 = np.zeros(theta2.shape)
+    
+    d3 = h - y
+
+    z2 = np.insert(z2, 0, values=np.ones(1), axis=1)
+
+    d2 = np.multiply((theta2.T * d3.T).T, sigmoid_Gradient(z2))
+
+    delta1 += (d2[:, 1:]).T * a1
+    delta2 += d3.T * a2
+
+    delta1 = delta1 / m
+    delta2 = delta2 / m
+
+    return delta1, delta2
+
+
+def backProp_Deltas_regularized(a1, z2, a2, z3, h, theta1, theta2, y, m, tasa_aprendizaje):
+#Calculo de los gradientes en formato regularizado 
+    delta1, delta2 = backProp_Deltas(a1, z2, a2, z3, h, theta1, theta2, y, m)
+
+    delta1[:, 1:] = delta1[:, 1:] + (theta1[:, 1:] * tasa_aprendizaje) / m
+    delta2[:, 1:] = delta2[:, 1:] + (theta2[:, 1:] * tasa_aprendizaje) / m
+
+    return delta1, delta2
+
+
+def backprop(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje, regularize = True):
+#Pasada hacia adelante y hacia atrás en nuestra red neuronal, nos calcula el gradiente y el coste correspondientes a nuestra red neuronal
+    m = X.shape[0]
+    X = np.matrix(X)
+    y = np.matrix(y)
+
+    theta1 = np.matrix(np.reshape(params[:num_ocultas * (num_entradas + 1)], (num_ocultas, (num_entradas + 1))))
+    theta2 = np.matrix(np.reshape(params[num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1))))
+
+
+    a1, z2, a2, z3, h = forward(X, theta1, theta2)
+
+    if regularize:
+        delta1, delta2 = backProp_Deltas_regularized(a1, z2, a2, z3, h, theta1, theta2, y, m, tasa_aprendizaje)
+    else :
+        delta1, delta2 = backProp_Deltas(a1, z2, a2, z3, h, theta1, theta2, y, m)
+
+    J = cost_Regularized_n_r(params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje)
+
+    grad = unrollVect(delta1, delta2)
+
+    return J, grad
+
+
+def neuronal_prediction_vector(sigmoids_matrix) :
+    #calcula los valores predichos por la red neuronal dada una matriz de sigmoides 
+    # Será generada por la funcón forward.
+
+    samples = sigmoids_matrix.shape[0]
+    y = np.zeros(samples)
+    
+    for i in range(samples):
+        y[i] = np.argmax(sigmoids_matrix[i, :])
+
+    return y
+
+def neuronal_succes_percentage(X, y, weights1, weights2) :
+    #Compara los valores predichos por la red neuronal para unos 
+    sigmoids_matrix = forward(X, weights1, weights2)[4]
+    y_ = neuronal_prediction_vector(sigmoids_matrix)
+    percentage = vectors_coincidence_percentage(y_, y)
+
+    return percentage
+
+
+#____________
+#Red neuronal
+#____________
+def neuronal_red():
+    
+    cancer_data = data_csv("data.csv")
+    X, y = data_builder(cancer_data)
+    
+    tasa_aprendizaje = 1
+    num_etiquetas = 2 #num_etiquetas = num_salidas
+    num_entradas = 30
+    num_ocultas = 25
+
+    theta1 = generate_Random_Weights(num_entradas, num_ocultas)
+    theta2 = generate_Random_Weights(num_ocultas, num_etiquetas)
+
+    params_rn = unrollVect(theta1, theta2)
+    y_ = y_onehot(y, X, num_etiquetas)
+
+    params_optimiced = minimice(backprop, params_rn, num_entradas, num_ocultas, num_etiquetas, X, y_, tasa_aprendizaje)
+
+    theta1_optimiced, theta2_optimiced = rollVector(params_optimiced, num_entradas, num_ocultas, num_etiquetas)
+
+    percentage = neuronal_succes_percentage(X, y, theta1_optimiced, theta2_optimiced)
+    
+    print("Percentage neuronal red : ", percentage) #hemos llegado a obtener hasta un 93.84% de acierto (oscilan entre el 87 y el 93 % de acierto)
 
 def main():
 
@@ -478,4 +683,4 @@ def main():
 
     data_visualization(X, y)
 
-regresion_lineal_multiples_variables()
+neuronal_red()
