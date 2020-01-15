@@ -315,9 +315,15 @@ def cost(Thetas, X, Y):
 
     J = (-1/m) * (A + (np.dot(B, C)))
 
+    
 
-    return J
+    _gradient = gradient(Thetas, X, Y)
 
+
+    return J, _gradient
+
+def two_power(X):
+    return X**2
 
 #_____________________________
 #Función de coste regularizado
@@ -331,16 +337,18 @@ def cost_regularized(Thetas, X, Y, h):
     #J(θ) = (cost(Thetas, X, Y)) + D
     #J(θ) = [−(1/m) * ((log (g(Xθ)))T * y + (log (1 − g(Xθ)))T * (1 − y)))] + (λ/2m)*E(Theta^2)
 
-    cost_ = cost(Thetas, X, Y)
+    cost_ = cost(Thetas, X, Y)[0]
    
     #D
-    Thetas_ = np.power(Thetas_, 2)
+    Thetas_ = two_power(Thetas_)
 
     D = h/(2*m) * np.sum(Thetas_)
 
     J_regularized = (cost_) + D
+    
+    g = gradient_regularized(Thetas, X, Y, h)
 
-    return J_regularized
+    return J_regularized, g
 
 #____________________
 #Función de gradiente 
@@ -385,6 +393,22 @@ def optimized_parameters(Thetas, X, Y):
 
     return theta_opt
     
+    
+def minimice_rl(cost, Thetas, X, Y):
+    #Calcula los parámetros optimos de pesos para nuestra red neuronal
+    fmin = opt.minimize(fun=cost, x0=Thetas, args=(X, Y), 
+    method='Nelder-Mead', jac=True, options={'maxiter': 550})
+
+    result = fmin.x
+    return result
+
+def minimice_rl_r(cost, Thetas, X, Y, h):
+    #Calcula los parámetros optimos de pesos para nuestra red neuronal
+    fmin = opt.minimize(fun=cost_regularized, x0=Thetas, args=(X, Y, h), 
+    method='Nelder-Mead', jac=True, options={'maxiter': 516})
+
+    result = fmin.x
+    return result
 
 #____________________________________
 #Función thetas optimos regularizados
@@ -397,6 +421,23 @@ def optimized_parameters_regularized(Thetas, X, Y, h):
     return theta_opt
 
 
+
+def logistic_regresion_evaluation(X, Y, Z):
+
+    H_ = H(X, Z)
+    H_sigmoid = sigmoide_function(H_)
+
+    H_sigmoid_evaluated = (H_sigmoid >= 0.5).astype(np.float) #every value that keeps the condition will return true. astyping it to int it will turn it into a one value, having an array ready to compare with Y_
+    
+    comparison_array = H_sigmoid_evaluated == Y #returns an array where each value will be true if the condition is keeped
+
+    coincidences = comparison_array[comparison_array == True] #return an array with only the elements that keep the condition from the original array
+
+    percentage_correct_clasification = (coincidences.shape[0] / comparison_array.shape[0]) * 100.0 #how many trues(coincidences) do we have in comparison with all the succesful and not succesful coincidences (trues/(trues+falses))
+
+    return(percentage_correct_clasification)
+
+    
 #____________________________________
 #Función Regresión logística
 #____________________________________
@@ -414,7 +455,7 @@ def logistic_regresion():
 
     Thetas = np.zeros(X_V.shape[1])
 
-    cost_ = cost(Thetas, X_V, Y_)
+    cost_ = cost(Thetas, X_V, Y_)[0]
     gradient_ = gradient(Thetas, X_V, Y_)
 
     #testing and comparing if the resoults are correct having in mind the resoults given in the assignment document
@@ -422,11 +463,15 @@ def logistic_regresion():
     print(cost_)
     print(gradient_)
 
-    optimized_thetas = optimized_parameters(Thetas, X_V, Y_)#Optimus cost is obtained by calling the cost ecuation using the optimized thetas
+    optimized_thetas = minimice_rl(cost, Thetas, X_V, Y_)#Optimus cost is obtained by calling the cost ecuation using the optimized thetas
 
     print("Thetas optimos: ", optimized_thetas)
-    cost_ = cost(optimized_thetas, X_V, Y_)
+    cost_ = cost(optimized_thetas, X_V, Y_)[0]
     print("Coste optimo : ", cost_)
+
+    percentage_correct_clasification = logistic_regresion_evaluation(X_V, Y_, optimized_thetas)
+
+    print("Porcentaje de acierto : ", percentage_correct_clasification)
 
 #________________________________________
 #Función Regresión logística regularizada
@@ -436,20 +481,21 @@ def regularized_logistic_regresion(h = 1):
     cancer_data = data_csv("data.csv")
     X_, Y_ = data_builder(cancer_data)
     
-    poly = PolynomialFeatures(degree=6)
-    X_poly = poly.fit_transform(X_)
+    #poly = PolynomialFeatures(degree=6)
+    X_poly = X_
     
     #theta and alpha inicialization
     Thetas = np.zeros(X_poly.shape[1])
 
-    cost_r = cost_regularized(Thetas, X_poly, Y_, h)
+    cost_r = cost_regularized(Thetas, X_poly, Y_, h)[0]
     gradient_r = gradient_regularized(Thetas, X_poly, Y_, h)
     print(cost_r)
     print(gradient_r)
 
-    optimized_thetas_regularized = optimized_parameters_regularized(Thetas, X_poly, Y_, h)
+    optimized_thetas_regularized = minimice_rl_r(cost_regularized, Thetas, X_poly, Y_, h)
 
-
+    percentage_correct_clasification = logistic_regresion_evaluation(X_, Y_, optimized_thetas_regularized)
+    print("Porcentaje de acierto : ", percentage_correct_clasification)
 
 
 
@@ -735,4 +781,5 @@ def main():
 
     data_visualization(X, y)
 
-neuronal_red_main()
+regularized_logistic_regresion()
+#logistic_regresion()
