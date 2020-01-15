@@ -8,6 +8,7 @@ from sklearn.preprocessing import PolynomialFeatures
 import scipy.optimize as opt
 import random
 
+from sklearn import svm 
 #_______________________________________________________________________________________
 
 def data_csv(file_name):
@@ -476,7 +477,7 @@ def logistic_regresion():
 #________________________________________
 #Función Regresión logística regularizada
 #________________________________________
-def regularized_logistic_regresion(h = 1):
+def regularized_logistic_regresion(h = 1): #90.6% obtenido de coincidencia, a medida que hemos ido incrementando el número de iteraciones hemos ido consiguiendo un mayor porcentaje de coincidencia
 
     cancer_data = data_csv("data.csv")
     X_, Y_ = data_builder(cancer_data)
@@ -757,6 +758,68 @@ def neuronal_red_main():
     
     print("Percentage neuronal red : ", percentage) #hemos llegado a obtener hasta un 93.84% de acierto (oscilan entre el 87 y el 93 % de acierto)
 
+
+#FIN Red Neouronal
+#----------------------------------------------------------------------------------------------------------------------------------------------------------
+def gaussian_Kernel(X1, X2, sigma):
+    Gram = np.zeros((X1.shape[0], X2.shape[0]))
+    for i, x1 in enumerate(X1):
+        for j, x2 in enumerate(X2):
+            x1 = x1.ravel()
+            x2 = x2.ravel()
+            Gram[i, j] = np.exp(-np.sum(np.square(x1 - x2)) / (2 * (sigma**2)))
+    return Gram
+
+
+def SVM_gaussian_training(X, y, c_param, tol, max_i, sigma):
+
+    svm_ = svm.SVC(C = c_param, kernel="precomputed", tol = tol, max_iter = max_i)
+    return svm_.fit(gaussian_Kernel(X, X, sigma=sigma), y)
+
+
+def draw_Non_Linear_KernelFrontier(X, y , model, sigma):
+   
+    #Datos que conformarán la curva que servirá de frontera
+    x1plot = np.linspace(X[:,0].min(), X[:,0].max(), 100).T
+    x2plot = np.linspace(X[:,1].min(), X[:,1].max(), 100).T
+    X1, X2 = np.meshgrid(x1plot, x2plot)
+    vals = np.zeros(X1.shape)
+    for i in range(X1.shape[1]):
+        this_X = np.column_stack((X1[:, i], X2[:, i]))
+        vals[:, i] = model.predict(gaussian_Kernel(this_X, X, sigma))
+
+    #Frontera de separación
+    plt.contour(X1, X2, vals, colors="r", linewidths = 0.1 )
+    displayData(X, y)
+    plt.show()
+
+
+def displayData(X, y):
+
+    pos_0 = np.where(y == 0)
+    neg_0 = np.where(y == 1)
+
+    plt.plot(X[:,0][pos_0], X[:,1][pos_0], "yo")
+    plt.plot(X[:,0][neg_0], X[:,1][neg_0], "k+")
+
+def part2_main():
+    #Parte 1.2
+    c_param = 1
+    sigma = 0.1
+    tool = 1e-3
+    iterations = 1000
+
+    cancer_data = data_csv("data.csv")
+    X, y = data_builder(cancer_data)
+
+
+    y_r = np.ravel(y)
+
+    svm_function_n_l = SVM_gaussian_training(X[:, 0:2], y_r, c_param, tool, iterations, sigma)
+    draw_Non_Linear_KernelFrontier(X[:, 0:2], y_r, svm_function_n_l, sigma)
+
+
+
 def main():
 
 
@@ -781,5 +844,6 @@ def main():
 
     data_visualization(X, y)
 
-regularized_logistic_regresion()
-#logistic_regresion()
+#regularized_logistic_regresion()
+logistic_regresion()
+#part2_main()
