@@ -793,6 +793,18 @@ def draw_Non_Linear_KernelFrontier(X, y , model, sigma):
     displayData(X, y)
     plt.show()
 
+def optimal_C_sigma_Parameters(X, y_r, Xval, yval, max_i, tool ):
+    
+    predictions = dict() #almacenaremos la infrmacion relevante en un diccionario
+    for C in [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]:
+        for sigma in[0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]:
+            model = SVM_gaussian_training(X, y_r, C, tool, max_i, sigma )
+            prediction = model.predict(gaussian_Kernel( Xval, X, sigma))
+            predictions[(C, sigma)] = np.mean((prediction != yval).astype(int))
+            
+    
+    C, sigma = min(predictions, key=predictions.get)
+    return C, sigma
 
 def displayData(X, y):
 
@@ -815,10 +827,28 @@ def part2_main():
 
     y_r = np.ravel(y)
 
-    svm_function_n_l = SVM_gaussian_training(X[:, 0:2], y_r, c_param, tool, iterations, sigma)
-    draw_Non_Linear_KernelFrontier(X[:, 0:2], y_r, svm_function_n_l, sigma)
+    svm_function_n_l = SVM_gaussian_training(X, y_r, c_param, tool, iterations, sigma)
 
+def part3_main():
+    #Parte 1.3
 
+    tool = 1e-3
+    iterations = 100
+
+    cancer_data = data_csv("data.csv")
+    X, y = data_builder(cancer_data)
+
+    y_r = np.ravel(y)
+
+    Xval = X[100:110, :]
+    yval = y[100:110]
+    optC, optSigma = optimal_C_sigma_Parameters(X, y_r, Xval, yval, iterations, tool)
+
+    svm_function_optimal_C_sigma = SVM_gaussian_training(X, y_r, optC, tool, iterations, optSigma)
+    prediction = svm_function_optimal_C_sigma.predict(gaussian_Kernel( X, X, optSigma))
+    print(vectors_coincidence_percentage(prediction, y))
+    print(y)
+    print(prediction)
 
 def main():
 
@@ -845,5 +875,6 @@ def main():
     data_visualization(X, y)
 
 #regularized_logistic_regresion()
-logistic_regresion()
+#logistic_regresion()
 #part2_main()
+part3_main()
