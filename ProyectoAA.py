@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D 
 import math
 from math import e
 from pandas.io.parsers import read_csv
@@ -9,6 +11,7 @@ import scipy.optimize as opt
 import random
 
 from sklearn import svm 
+
 #_______________________________________________________________________________________
 
 def data_csv(file_name):
@@ -394,7 +397,6 @@ def optimized_parameters(Thetas, X, Y):
 
     return theta_opt
     
-    
 def minimice_rl(cost, Thetas, X, Y):
     #Calcula los parámetros optimos de pesos para nuestra red neuronal
     fmin = opt.minimize(fun=cost, x0=Thetas, args=(X, Y), 
@@ -403,10 +405,10 @@ def minimice_rl(cost, Thetas, X, Y):
     result = fmin.x
     return result
 
-def minimice_rl_r(cost, Thetas, X, Y, h):
+def minimice_rl_r(cost, Thetas, X, Y, h, iter):
     #Calcula los parámetros optimos de pesos para nuestra red neuronal
     fmin = opt.minimize(fun=cost_regularized, x0=Thetas, args=(X, Y, h), 
-    method='Nelder-Mead', jac=True, options={'maxiter': 516})
+    method='Nelder-Mead', jac=True, options={'maxiter': iter})
 
     result = fmin.x
     return result
@@ -477,7 +479,7 @@ def logistic_regresion():
 #________________________________________
 #Función Regresión logística regularizada
 #________________________________________
-def regularized_logistic_regresion(h = 1): #90.6% obtenido de coincidencia, a medida que hemos ido incrementando el número de iteraciones hemos ido consiguiendo un mayor porcentaje de coincidencia
+def regularized_logistic_regresion(h , iter): #90.6% obtenido de coincidencia, a medida que hemos ido incrementando el número de iteraciones hemos ido consiguiendo un mayor porcentaje de coincidencia
 
     cancer_data = data_csv("data.csv")
     X_, Y_ = data_builder(cancer_data)
@@ -490,13 +492,35 @@ def regularized_logistic_regresion(h = 1): #90.6% obtenido de coincidencia, a me
 
     cost_r = cost_regularized(Thetas, X_poly, Y_, h)[0]
     gradient_r = gradient_regularized(Thetas, X_poly, Y_, h)
-    print(cost_r)
-    print(gradient_r)
 
-    optimized_thetas_regularized = minimice_rl_r(cost_regularized, Thetas, X_poly, Y_, h)
+    optimized_thetas_regularized = minimice_rl_r(cost_regularized, Thetas, X_poly, Y_, h, iter)
 
     percentage_correct_clasification = logistic_regresion_evaluation(X_, Y_, optimized_thetas_regularized)
-    print("Porcentaje de acierto : ", percentage_correct_clasification)
+    #print("Porcentaje de acierto : ", percentage_correct_clasification)
+    return percentage_correct_clasification
+
+
+def pintaFunciontasaRegresionIteraciones(_from = 70, to = 700, step = 10, Xlabel = "Iteraciones", Ylabel = "PorcentajeDeAcierto", name = "( h = 1)"):
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = regularized_logistic_regresion(1,x[i])
+
+
+    plt.plot(x, y, color = "blue")
+    plt.scatter(x, y, color = "blue", linewidths= 0.05)
+
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
+
 
 
 
@@ -581,10 +605,10 @@ def y_onehot(y, X, num_etiquetas):
 #Función optimización de pesos
 #_______________________________
 #Calcula los parámetros optimos de pesos para nuestra red neuronal
-def minimice(backprop, params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje):
+def minimice(backprop, params, num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje, iter ):
 
     fmin = opt.minimize(fun=backprop, x0=params, args=(num_entradas, num_ocultas, num_etiquetas, X, y, tasa_aprendizaje), 
-    method='TNC', jac=True, options={'maxiter': 70})
+    method='TNC', jac=True, options={'maxiter': iter})
 
     result = fmin.x
     return result
@@ -734,15 +758,15 @@ def neuronal_succes_percentage(X, y, weights1, weights2) :
 #___________________________________________
 #Main Red Neurnal, ajuste a 25 capas ocultas
 #___________________________________________
-def neuronal_red_main():
+def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
     
     cancer_data = data_csv("data.csv")
     X, y = data_builder(cancer_data)
     
-    tasa_aprendizaje = 1
+    tasa_aprendizaje = tasa_a
     num_etiquetas = 2 #num_etiquetas = num_salidas. Maligno y Benigno
     num_entradas = 30
-    num_ocultas = 8
+    num_ocultas = ocultas
 
     theta1 = generate_Random_Weights(num_entradas, num_ocultas)
     theta2 = generate_Random_Weights(num_ocultas, num_etiquetas)
@@ -750,14 +774,14 @@ def neuronal_red_main():
     params_rn = unrollVect(theta1, theta2)
     y_ = y_onehot(y, X, num_etiquetas)
 
-    params_optimiced = minimice(backprop, params_rn, num_entradas, num_ocultas, num_etiquetas, X, y_, tasa_aprendizaje)
+    params_optimiced = minimice(backprop, params_rn, num_entradas, num_ocultas, num_etiquetas, X[:num_valores_entrenamiento, :], y_[:num_valores_entrenamiento], tasa_a, iteraciones)
 
     theta1_optimiced, theta2_optimiced = rollVector(params_optimiced, num_entradas, num_ocultas, num_etiquetas)
 
-    percentage = neuronal_succes_percentage(X, y, theta1_optimiced, theta2_optimiced)
+    percentage = neuronal_succes_percentage(X[num_valores_entrenamiento:], y[num_valores_entrenamiento:], theta1_optimiced, theta2_optimiced)
     
-    print("Percentage neuronal red : ", percentage) #hemos llegado a obtener hasta un 93.84% de acierto (oscilan entre el 87 y el 93 % de acierto)
-
+    #print("Percentage neuronal red : ", percentage) #hemos llegado a obtener hasta un 93.84% de acierto (oscilan entre el 87 y el 93 % de acierto)
+    return percentage
 
 #FIN Red Neouronal
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -829,26 +853,50 @@ def part2_main():
 
     svm_function_n_l = SVM_gaussian_training(X, y_r, c_param, tool, iterations, sigma)
 
-def part3_main():
+def part3_main(test_values, X, y):
     #Parte 1.3
 
     tool = 1e-3
     iterations = 100
 
-    cancer_data = data_csv("data.csv")
-    X, y = data_builder(cancer_data)
 
     y_r = np.ravel(y)
 
-    Xval = X[100:110, :]
-    yval = y[100:110]
+    Xval = X[:test_values, :]
+    yval = y[:test_values]
     optC, optSigma = optimal_C_sigma_Parameters(X, y_r, Xval, yval, iterations, tool)
 
     svm_function_optimal_C_sigma = SVM_gaussian_training(X, y_r, optC, tool, iterations, optSigma)
     prediction = svm_function_optimal_C_sigma.predict(gaussian_Kernel( X, X, optSigma))
-    print(vectors_coincidence_percentage(prediction, y))
-    print(y)
-    print(prediction)
+    return vectors_coincidence_percentage(prediction, y)
+
+
+
+def pintaFuncionValoresDeTest(_from = 10, to = 30, step = 1, Xlabel = "TamañoValoresDeEntrenamiento", Ylabel = "Porcentaje", name = "( tool = 1e-1  /it = 100 )"):
+
+
+    cancer_data = data_csv("data.csv")
+    _X, _y = data_builder(cancer_data)
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = part3_main(x[i], _X, _y)
+
+    plt.plot(x, y, color = "blue")
+    plt.scatter(x, y, color = "blue", linewidths= 0.05)
+
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
+
+
 
 def main():
 
@@ -874,7 +922,156 @@ def main():
 
     data_visualization(X, y)
 
+
+
+#def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
+
+def pintaFuncionCapasOcultasDependiente(_from = 3, to = 25, step = 1, Xlabel = "CapasOcultas", Ylabel = "Porcentaje", name = "( v_e = 400  /it = 700 / t_a = 0.02)"):
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = neuronal_red_main(x[i], 500, 700, 0.02)
+
+    plt.plot(x, y, color = "green")
+    plt.scatter(x, y, color = "green", linewidths= 0.05)
+
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
+
+
+#def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
+def pintaFuncionIteracionesDependiente(_from = 10, to = 700, step = 10, Xlabel = "NumeroDeIteraciones", Ylabel = "PorcentajeDeAcierto", name = "( v_e = 400  / c_o = 8 / t_a = 0.02)"):
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = neuronal_red_main(8, 500, x[i], 0.02)
+
+    plt.plot(x, y, color = "green")
+    plt.scatter(x, y, color = "green", linewidths= 0.05)
+
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
+
+def pintaFunciontasaDeAprendizajeDependiente(_from = 0.05, to = 10, step = 0.05, Xlabel = "TasaDeaprendizaje", Ylabel = "PorcentajeDeAcierto", name = "( v_e = 400  / c_o = 8 / it = 700)"):
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = neuronal_red_main(8, 500, 700, x[i])
+
+
+    plt.plot(x, y, color = "green")
+    plt.scatter(x, y, color = "green", linewidths= 0.05)
+
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
+
+
+def pintaFuncion(_from, to, step, function, Xlabel, Ylabel, name):
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = neuronal_red_main(x[i], 500, 700, 0.02)
+
+    plt.plot(x, y, color = "green")
+    plt.scatter(x, y, color = "green", linewidths= 0.05)
+
+
+    for i in range(s):
+        y[i] = neuronal_red_main(x[i], 400, 700, 0.02)
+
+    plt.plot(x, y, color = "orange")
+    plt.scatter(x, y, color = "orange", linewidths= 0.05)
+
+
+    for i in range(s):
+        y[i] = neuronal_red_main(x[i], 300, 700, 0.02)
+
+    plt.plot(x, y, color = "red")
+    plt.scatter(x, y, color = "red", linewidths= 0.05)
+
+    """
+
+    t = np.arange(300, 500, 1)
+    z = np.zeros(200)
+    for j in range (350 , 500):
+           for i in range(s):
+                y[i] = neuronal_red_main(x[i], j)
+                media = y.mean()
+                z[j-300] = media
+
+    """
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
+
+def triDi():
+
+    h = np.arange(0.2, 5.2, 0.2)
+    i = np.arange(70,770,28)
+
+    X,Y = np.meshgrid(h, i)
+
+    Z = neuronalRedPreparation(X, Y)
+
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+
+    surf = ax.plot_surface(X, Y, Z, cmap= cm.coolwarm, linewidths= 0, antialiaseds = False)
+    fig.colorbar(surf, shrink = 0.5, aspect = 5)
+    plt.xlabel("TasaDePrendizaje")
+    plt.ylabel("Iteraciones")
+    plt.show()
+
+def neuronalRedPreparation(X, Y):
+    z = X
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+            z[i, j] = neuronal_red_main(8,  450, Y[i,j], X[i,j])
+    return z
+
+
 #regularized_logistic_regresion()
 #logistic_regresion()
 #part2_main()
-part3_main()
+#part3_main()
+#neuronal_red_main()
+
+#pintaFuncion(4, 25, 1, neuronal_red_main, "CapasOcultas", "PorcentajeAcierto", "RedNeuronal")
+#neuronal_red_main(8,  450, 700, 10)
+#triDi()
+
+#pintaFunciontasaDeAprendizajeDependiente()
+#pintaFuncionCapasOcultasDependiente()
+pintaFuncionIteracionesDependiente()
