@@ -432,13 +432,9 @@ def logistic_regresion_evaluation(X, Y, Z):
 
     H_sigmoid_evaluated = (H_sigmoid >= 0.5).astype(np.float) #every value that keeps the condition will return true. astyping it to int it will turn it into a one value, having an array ready to compare with Y_
     
-    comparison_array = H_sigmoid_evaluated == Y #returns an array where each value will be true if the condition is keeped
+    #returns an array where each value will be true if the condition is keeped
 
-    coincidences = comparison_array[comparison_array == True] #return an array with only the elements that keep the condition from the original array
-
-    percentage_correct_clasification = (coincidences.shape[0] / comparison_array.shape[0]) * 100.0 #how many trues(coincidences) do we have in comparison with all the succesful and not succesful coincidences (trues/(trues+falses))
-
-    return(percentage_correct_clasification)
+    return vectors_coincidence_percentage( Y ,H_sigmoid_evaluated)
 
     
 #____________________________________
@@ -485,19 +481,45 @@ def regularized_logistic_regresion(h , iter): #90.6% obtenido de coincidencia, a
     X_, Y_ = data_builder(cancer_data)
     
     #poly = PolynomialFeatures(degree=6)
-    X_poly = X_
-    
+    X_poly = X_[:h, :]
+    Y__ = Y_[:h]
     #theta and alpha inicialization
     Thetas = np.zeros(X_poly.shape[1])
 
-    cost_r = cost_regularized(Thetas, X_poly, Y_, h)[0]
-    gradient_r = gradient_regularized(Thetas, X_poly, Y_, h)
+    cost_r = cost_regularized(Thetas, X_poly, Y__, h)[0]
+    gradient_r = gradient_regularized(Thetas, X_poly, Y__, 1)
 
-    optimized_thetas_regularized = minimice_rl_r(cost_regularized, Thetas, X_poly, Y_, h, iter)
+    optimized_thetas_regularized = minimice_rl_r(cost_regularized, Thetas, X_poly, Y__, 1, iter)
 
-    percentage_correct_clasification = logistic_regresion_evaluation(X_, Y_, optimized_thetas_regularized)
+    percentage_correct_clasification = logistic_regresion_evaluation(X_[h:, :], Y_[h:], optimized_thetas_regularized)
     #print("Porcentaje de acierto : ", percentage_correct_clasification)
     return percentage_correct_clasification
+
+def triDi_regresion():
+
+    h = np.arange(50, 500, 28)
+    i = np.arange(50,500,28)
+
+    X,Y = np.meshgrid(h, i)
+
+    Z = regularized_logistic_regresion(X, Y)
+
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+
+    surf = ax.plot_surface(X, Y, Z, cmap= cm.coolwarm, linewidths= 0, antialiaseds = False)
+    fig.colorbar(surf, shrink = 0.5, aspect = 5)
+    plt.xlabel("NumeroValoresDeEntrenaiento")
+    plt.ylabel("Iteraciones")
+    plt.show()
+
+def regularized_logistic_regresion_preparation(X, Y):
+    z = X
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+            z[i, j] = regularized_logistic_regresion(X[i,j], Y[i,j])
+    return z
 
 
 def pintaFunciontasaRegresionIteraciones(_from = 70, to = 700, step = 10, Xlabel = "Iteraciones", Ylabel = "PorcentajeDeAcierto", name = "( h = 1)"):
@@ -522,7 +544,8 @@ def pintaFunciontasaRegresionIteraciones(_from = 70, to = 700, step = 10, Xlabel
     plt.show()
 
 
-
+#pintaFunciontasaRegresionIteraciones()
+triDi_regresion()
 
 #FIN Regresión logística
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1074,4 +1097,4 @@ def neuronalRedPreparation(X, Y):
 
 #pintaFunciontasaDeAprendizajeDependiente()
 #pintaFuncionCapasOcultasDependiente()
-pintaFuncionIteracionesDependiente()
+#pintaFuncionIteracionesDependiente()
