@@ -430,9 +430,7 @@ def logistic_regresion_evaluation(X, Y, Z):
     H_ = H(X, Z)
     H_sigmoid = sigmoide_function(H_)
 
-    H_sigmoid_evaluated = (H_sigmoid >= 0.5).astype(np.float) #every value that keeps the condition will return true. astyping it to int it will turn it into a one value, having an array ready to compare with Y_
-    
-    #returns an array where each value will be true if the condition is keeped
+    H_sigmoid_evaluated = (H_sigmoid >= 0.5).astype(np.float) 
 
     return vectors_coincidence_percentage( Y ,H_sigmoid_evaluated)
 
@@ -446,23 +444,22 @@ def logistic_regresion():
     X_, Y_ = data_builder(cancer_data)
     
 
-    X_V = X_ #X_ that will be used for use in vectorized methods, with the addition of a collum of ones as the first group of atributes
+    X_V = X_
 
     X_m = np.shape(X_)[0]
 
-    X_V = np.hstack([np.ones([X_m,1]),X_]) #adding the one collum
+    X_V = np.hstack([np.ones([X_m,1]),X_]) 
 
     Thetas = np.zeros(X_V.shape[1])
 
     cost_ = cost(Thetas, X_V, Y_)[0]
     gradient_ = gradient(Thetas, X_V, Y_)
 
-    #testing and comparing if the resoults are correct having in mind the resoults given in the assignment document
 
     print(cost_)
     print(gradient_)
 
-    optimized_thetas = minimice_rl(cost, Thetas, X_V, Y_)#Optimus cost is obtained by calling the cost ecuation using the optimized thetas
+    optimized_thetas = minimice_rl(cost, Thetas, X_V, Y_)
 
     print("Thetas optimos: ", optimized_thetas)
     cost_ = cost(optimized_thetas, X_V, Y_)[0]
@@ -480,10 +477,10 @@ def regularized_logistic_regresion(h , iter): #90.6% obtenido de coincidencia, a
     cancer_data = data_csv("data.csv")
     X_, Y_ = data_builder(cancer_data)
     
-    #poly = PolynomialFeatures(degree=6)
+
     X_poly = X_[:h, :]
     Y__ = Y_[:h]
-    #theta and alpha inicialization
+
     Thetas = np.zeros(X_poly.shape[1])
 
     cost_r = cost_regularized(Thetas, X_poly, Y__, h)[0]
@@ -495,6 +492,9 @@ def regularized_logistic_regresion(h , iter): #90.6% obtenido de coincidencia, a
     #print("Porcentaje de acierto : ", percentage_correct_clasification)
     return percentage_correct_clasification
 
+#________________________________________
+#Funciones pintado para análisis regresión logística
+#________________________________________
 def triDi_regresion():
 
     h = np.arange(50, 500, 28)
@@ -544,8 +544,6 @@ def pintaFunciontasaRegresionIteraciones(_from = 70, to = 700, step = 10, Xlabel
     plt.show()
 
 
-#pintaFunciontasaRegresionIteraciones()
-triDi_regresion()
 
 #FIN Regresión logística
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -779,7 +777,7 @@ def neuronal_succes_percentage(X, y, weights1, weights2) :
 
 
 #___________________________________________
-#Main Red Neurnal, ajuste a 25 capas ocultas
+#Main Red Neurnal
 #___________________________________________
 def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
     
@@ -806,149 +804,10 @@ def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
     #print("Percentage neuronal red : ", percentage) #hemos llegado a obtener hasta un 93.84% de acierto (oscilan entre el 87 y el 93 % de acierto)
     return percentage
 
-#FIN Red Neouronal
-#----------------------------------------------------------------------------------------------------------------------------------------------------------
-def gaussian_Kernel(X1, X2, sigma):
-    Gram = np.zeros((X1.shape[0], X2.shape[0]))
-    for i, x1 in enumerate(X1):
-        for j, x2 in enumerate(X2):
-            x1 = x1.ravel()
-            x2 = x2.ravel()
-            Gram[i, j] = np.exp(-np.sum(np.square(x1 - x2)) / (2 * (sigma**2)))
-    return Gram
 
-
-def SVM_gaussian_training(X, y, c_param, tol, max_i, sigma):
-
-    svm_ = svm.SVC(C = c_param, kernel="precomputed", tol = tol, max_iter = max_i)
-    return svm_.fit(gaussian_Kernel(X, X, sigma=sigma), y)
-
-
-def draw_Non_Linear_KernelFrontier(X, y , model, sigma):
-   
-    #Datos que conformarán la curva que servirá de frontera
-    x1plot = np.linspace(X[:,0].min(), X[:,0].max(), 100).T
-    x2plot = np.linspace(X[:,1].min(), X[:,1].max(), 100).T
-    X1, X2 = np.meshgrid(x1plot, x2plot)
-    vals = np.zeros(X1.shape)
-    for i in range(X1.shape[1]):
-        this_X = np.column_stack((X1[:, i], X2[:, i]))
-        vals[:, i] = model.predict(gaussian_Kernel(this_X, X, sigma))
-
-    #Frontera de separación
-    plt.contour(X1, X2, vals, colors="r", linewidths = 0.1 )
-    displayData(X, y)
-    plt.show()
-
-def optimal_C_sigma_Parameters(X, y_r, Xval, yval, max_i, tool ):
-    
-    predictions = dict() #almacenaremos la infrmacion relevante en un diccionario
-    for C in [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]:
-        for sigma in[0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]:
-            model = SVM_gaussian_training(X, y_r, C, tool, max_i, sigma )
-            prediction = model.predict(gaussian_Kernel( Xval, X, sigma))
-            predictions[(C, sigma)] = np.mean((prediction != yval).astype(int))
-            
-    
-    C, sigma = min(predictions, key=predictions.get)
-    return C, sigma
-
-def displayData(X, y):
-
-    pos_0 = np.where(y == 0)
-    neg_0 = np.where(y == 1)
-
-    plt.plot(X[:,0][pos_0], X[:,1][pos_0], "yo")
-    plt.plot(X[:,0][neg_0], X[:,1][neg_0], "k+")
-
-def part2_main():
-    #Parte 1.2
-    c_param = 1
-    sigma = 0.1
-    tool = 1e-3
-    iterations = 1000
-
-    cancer_data = data_csv("data.csv")
-    X, y = data_builder(cancer_data)
-
-
-    y_r = np.ravel(y)
-
-    svm_function_n_l = SVM_gaussian_training(X, y_r, c_param, tool, iterations, sigma)
-
-def part3_main(test_values, X, y):
-    #Parte 1.3
-
-    tool = 1e-3
-    iterations = 100
-
-
-    y_r = np.ravel(y)
-
-    Xval = X[:test_values, :]
-    yval = y[:test_values]
-    optC, optSigma = optimal_C_sigma_Parameters(X, y_r, Xval, yval, iterations, tool)
-
-    svm_function_optimal_C_sigma = SVM_gaussian_training(X, y_r, optC, tool, iterations, optSigma)
-    prediction = svm_function_optimal_C_sigma.predict(gaussian_Kernel( X, X, optSigma))
-    return vectors_coincidence_percentage(prediction, y)
-
-
-
-def pintaFuncionValoresDeTest(_from = 10, to = 30, step = 1, Xlabel = "TamañoValoresDeEntrenamiento", Ylabel = "Porcentaje", name = "( tool = 1e-1  /it = 100 )"):
-
-
-    cancer_data = data_csv("data.csv")
-    _X, _y = data_builder(cancer_data)
-
-    x = np.arange(_from, to, step)
-    s = x.shape[0]
-    y = np.zeros(s)
-
-
-    for i in range(s):
-        y[i] = part3_main(x[i], _X, _y)
-
-    plt.plot(x, y, color = "blue")
-    plt.scatter(x, y, color = "blue", linewidths= 0.05)
-
-    
-    plt.xlabel(Xlabel)
-    plt.ylabel(Ylabel)
-
-    plt.title(name)
-    plt.show()
-
-
-
-def main():
-
-
-    #Los campos sobre los que vamos a realizar nuestro análisis y que se corresponden con las columnas de nuestra matriz X son :
-    #"radius_mean","texture_mean","perimeter_mean","area_mean","smoothness_mean",
-    # "compactness_mean","concavity_mean","concave points_mean","symmetry_mean",
-    # "fractal_dimension_mean","radius_se","texture_se","perimeter_se","area_se",
-    # "smoothness_se","compactness_se","concavity_se","concave points_se","symmetry_se",
-    # "fractal_dimension_se","radius_worst","texture_worst","perimeter_worst","area_worst",
-    # "smoothness_worst","compactness_worst","concavity_worst","concave points_worst",
-    # "symmetry_worst","fractal_dimension_worst",
-
-    #Volcado de datos en una matriz de parámetros y en un vector de resultados.
-    #Por comodidad a la hora de la lectura de datos desde el cvs se han modifcado los valores de M (Maligno) y B(Benigno) 
-    #por valores numéricos 1(Maligno) y 0(Benigno)
-    cancer_data = data_csv("data.csv")
-    X, y = data_builder(cancer_data)
-
-    #tenemos una matriz de 569 x 30 en el que cada fila se correspoende con un ejemplo de entrenamiento que se corresponde con una clasificación de cancer
-
-    print(X.shape)
-
-    data_visualization(X, y)
-
-
-
-#def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
-
+#___________________________________________
+#Funciones de pintado para el análisis de nuestra red neuronal 
+#___________________________________________
 def pintaFuncionCapasOcultasDependiente(_from = 3, to = 25, step = 1, Xlabel = "CapasOcultas", Ylabel = "Porcentaje", name = "( v_e = 400  /it = 700 / t_a = 0.02)"):
 
     x = np.arange(_from, to, step)
@@ -969,8 +828,6 @@ def pintaFuncionCapasOcultasDependiente(_from = 3, to = 25, step = 1, Xlabel = "
     plt.title(name)
     plt.show()
 
-
-#def neuronal_red_main(ocultas, num_valores_entrenamiento, iteraciones, tasa_a):
 def pintaFuncionIteracionesDependiente(_from = 10, to = 700, step = 10, Xlabel = "NumeroDeIteraciones", Ylabel = "PorcentajeDeAcierto", name = "( v_e = 400  / c_o = 8 / t_a = 0.02)"):
 
     x = np.arange(_from, to, step)
@@ -1013,7 +870,7 @@ def pintaFunciontasaDeAprendizajeDependiente(_from = 0.05, to = 10, step = 0.05,
     plt.show()
 
 
-def pintaFuncion(_from, to, step, function, Xlabel, Ylabel, name):
+def pintaFuncionPorcentajeVsNumeroValoresEntrenamiento(_from, to, step, function, Xlabel, Ylabel, name):
 
     x = np.arange(_from, to, step)
     s = x.shape[0]
@@ -1039,18 +896,6 @@ def pintaFuncion(_from, to, step, function, Xlabel, Ylabel, name):
 
     plt.plot(x, y, color = "red")
     plt.scatter(x, y, color = "red", linewidths= 0.05)
-
-    """
-
-    t = np.arange(300, 500, 1)
-    z = np.zeros(200)
-    for j in range (350 , 500):
-           for i in range(s):
-                y[i] = neuronal_red_main(x[i], j)
-                media = y.mean()
-                z[j-300] = media
-
-    """
     
     plt.xlabel(Xlabel)
     plt.ylabel(Ylabel)
@@ -1058,7 +903,8 @@ def pintaFuncion(_from, to, step, function, Xlabel, Ylabel, name):
     plt.title(name)
     plt.show()
 
-def triDi():
+
+def tri_Di_Red_Neournal_tasaAprendizajeVSIteranciones():
 
     h = np.arange(0.2, 5.2, 0.2)
     i = np.arange(70,770,28)
@@ -1085,16 +931,92 @@ def neuronalRedPreparation(X, Y):
     return z
 
 
-#regularized_logistic_regresion()
-#logistic_regresion()
-#part2_main()
-#part3_main()
-#neuronal_red_main()
+#FIN Red Neouronal
+#----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#pintaFuncion(4, 25, 1, neuronal_red_main, "CapasOcultas", "PorcentajeAcierto", "RedNeuronal")
-#neuronal_red_main(8,  450, 700, 10)
-#triDi()
+#___________________________________________
+#Funciones calculo Kernel Gausiano
+#___________________________________________
+def gaussian_Kernel(X1, X2, sigma):
+    Gram = np.zeros((X1.shape[0], X2.shape[0]))
+    for i, x1 in enumerate(X1):
+        for j, x2 in enumerate(X2):
+            x1 = x1.ravel()
+            x2 = x2.ravel()
+            Gram[i, j] = np.exp(-np.sum(np.square(x1 - x2)) / (2 * (sigma**2)))
+    return Gram
 
-#pintaFunciontasaDeAprendizajeDependiente()
-#pintaFuncionCapasOcultasDependiente()
-#pintaFuncionIteracionesDependiente()
+
+#___________________________________________
+#Función principal entrenamiento SVM
+#___________________________________________
+def SVM_gaussian_training(X, y, c_param, tol, max_i, sigma):
+
+    svm_ = svm.SVC(C = c_param, kernel="precomputed", tol = tol, max_iter = max_i)
+    return svm_.fit(gaussian_Kernel(X, X, sigma=sigma), y)
+
+#___________________________________________
+#Funcion cálculo parámetros óptimos
+#___________________________________________
+def optimal_C_sigma_Parameters(X, y_r, Xval, yval, max_i, tool ):
+    
+    predictions = dict() #almacenaremos la infrmacion relevante en un diccionario
+    for C in [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]:
+        for sigma in[0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]:
+            model = SVM_gaussian_training(X, y_r, C, tool, max_i, sigma )
+            prediction = model.predict(gaussian_Kernel( Xval, X, sigma))
+            predictions[(C, sigma)] = np.mean((prediction != yval).astype(int))
+            
+    
+    C, sigma = min(predictions, key=predictions.get)
+    return C, sigma
+
+
+#_____________________
+#Lógica principal SVM
+#_____________________
+def SVM_main(test_values, X, y):
+    #Parte 1.3
+
+    tool = 1e-3
+    iterations = 100
+
+
+    y_r = np.ravel(y)
+
+    Xval = X[:test_values, :]
+    yval = y[:test_values]
+    optC, optSigma = optimal_C_sigma_Parameters(X, y_r, Xval, yval, iterations, tool)
+
+    svm_function_optimal_C_sigma = SVM_gaussian_training(X, y_r, optC, tool, iterations, optSigma)
+    prediction = svm_function_optimal_C_sigma.predict(gaussian_Kernel( X, X, optSigma))
+    return vectors_coincidence_percentage(prediction, y)
+
+
+#_________________________________
+#Funciones de pintado análisis SVM
+#__________________________________
+
+def pintaSVM_ValoresEntrenamientoVSPorcentaje(_from = 10, to = 30, step = 1, Xlabel = "TamañoValoresDeEntrenamiento", Ylabel = "Porcentaje", name = "( tool = 1e-1  /it = 100 )"):
+
+
+    cancer_data = data_csv("data.csv")
+    _X, _y = data_builder(cancer_data)
+
+    x = np.arange(_from, to, step)
+    s = x.shape[0]
+    y = np.zeros(s)
+
+
+    for i in range(s):
+        y[i] = SVM_main(x[i], _X, _y)
+
+    plt.plot(x, y, color = "blue")
+    plt.scatter(x, y, color = "blue", linewidths= 0.05)
+
+    
+    plt.xlabel(Xlabel)
+    plt.ylabel(Ylabel)
+
+    plt.title(name)
+    plt.show()
